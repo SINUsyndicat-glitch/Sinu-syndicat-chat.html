@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة تعارف SINU Network</title>
+    
+    <!-- 🛠️ استدعاء مكتبة ethers.js لربط المحفظة بالبلوكشين -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="text/javascript"></script>
+
+    <style>
+        /* تصميم عصري ومريح للعين يناسب تطبيقات الهواتف */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a; /* لون خلفية داكن فخم */
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            background-color: #1e293b;
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .wallet-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .wallet-btn:hover {
+            background-color: #0ea5e9;
+        }
+
+        .welcome-box {
+            text-align: center;
+            margin: 30px 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-radius: 15px;
+            max-width: 400px;
+        }
+
+        .profiles-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 400px;
+            margin-bottom: 50px;
+        }
+
+        /* تصميم بطاقة الحساب الوهمي */
+        .profile-card {
+            background-color: #1e293b;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .profile-card img {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #38bdf8;
+        }
+
+        .profile-info {
+            flex-grow: 1;
+        }
+
+        .profile-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .profile-bio {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .chat-link {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .chat-link:hover {
+            background-color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">SINU Syndicate 🚀</div>
+        <!-- 🌐 زر ربط المحفظة الفعلي بعد تعديل الدالة -->
+        <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">ربط المحفظة (Connect Wallet)</button>
+    </header>
+
+    <div class="welcome-box">
+        <h2>مرحباً بك في منصة SINU 🎉</h2>
+        <p>احصل على 100 $SINU مجانية عند التسجيل والمشاركة! أول 10 رسائل مجانية تماماً.</p>
+    </div>
+
+    <h3 style="color: #38bdf8;">البروفايلات المتاحة بالقرب منك:</h3>
+
+    <div class="profiles-container">
+        
+        <!-- البروفايل الأول -->
+        <div class="profile-card">
+            <img src="rose1.png" alt="أمل">
+            <div class="profile-info">
+                <div class="profile-name">أمل 🌹</div>
+                <div class="profile-bio">أحب النقاشات العميقة والتعرف على أشخاص جدد...</div>
+            </div>
+            <a href="chat1.html" class="chat-link">دردشة</a>
+        </div>
+
+        <!-- البروفايل الثاني -->
+        <div class="profile-card">
+            <img src="rose2.png" alt="سارة">
+            <div class="profile-info">
+                <div class="profile-name">سارة 🌺</div>
+                <div class="profile-bio">مهتمة بالفن، القراءة والمشاريع التكنولوجية...</div>
+            </div>
+            <a href="chat2.html" class="chat-link">دردشة</a>
+        </div>
+
+    </div>
+
+    <!-- ⚙️ منطق الجافا سكريبت للاتصال بالمحفظة حقيقياً -->
+    <script>
+        let userAddress = "0x3E71427c4F4c3aE6DBA472Ccb17076E2148A1231";
+
+        async function connectWallet() {
+            // التحقق من وجود محفظة في المتصفح
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // طلب حسابات المستخدم من ميتاماسك أو محفظة كوينبيس
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const accounts = await provider.send("eth_requestAccounts", []);
+                    
+                    userAddress = accounts[0];
+                    
+                    // اختصار العنوان ليظهر بشكل أنيق (مثال: 0x1234...abcd)
+                    const shortAddress = userAddress.substring(0, 6) + "..." + userAddress.substring(userAddress.length - 4);
+                    
+                    // تغيير شكل ونص الزر ليدل على النجاح
+                    const btn = document.getElementById('walletBtn');
+                    btn.innerText = "متصل: " + shortAddress;
+                    btn.style.backgroundColor = "#22c55e"; // تغيير اللون للأخضر
+                    btn.style.color = "#ffffff";
+                    
+                    console.log("تم الاتصال بالمحفظة بنجاح: " + userAddress);
+                } catch (error) {
+                    console.error("رفض المستخدم الاتصال بالمحفظة:", error);
+                }
+            } else {
+                alert("لم يتم العثور على محفظة كربيتو! يرجى فتح الموقع من داخل متصفح MetaMask أو تطبيق يدعم Web3.");
+            }
+        }
+    </script>
+
+</body>
+</html>
