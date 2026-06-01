@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>غرفة التحدي - سارة</title>
+    <!-- استدعاء مكتبة ethers.js للتحدث مع البلوكشين والمحافظ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="text/javascript"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-header {
+            background-color: #1e293b;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .chat-header img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #38bdf8;
+        }
+        .header-info h4 { margin: 0; font-size: 16px; }
+        .header-info span { font-size: 12px; color: #22c55e; }
+        
+        /* زر تحدي PvP مخصص ليكون متتالياً أسفل الهيدر في الموبايل */
+        .pvp-btn {
+            margin-right: auto;
+            background: linear-gradient(135deg, #10b981, #047857); /* لون أخضر قتالي */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .chat-box {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 15px;
+        }
+        .message.bot { background-color: #1e293b; align-self: flex-start; border-bottom-right-radius: 2px; }
+        .message.user { background-color: #0284c7; align-self: flex-end; border-bottom-left-radius: 2px; }
+        .input-area { background-color: #1e293b; padding: 15px; display: flex; gap: 10px; }
+        .input-area input {
+            flex-grow: 1; background-color: #0f172a; border: 1px solid #334155;
+            color: white; padding: 12px; border-radius: 8px; font-size: 15px; outline: none;
+        }
+        .input-area button { background-color: #38bdf8; color: #0f172a; border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-header">
+        <img src="rose2.png" alt="سارة">
+        <div class="header-info">
+            <h4>سارة 🌺</h4>
+            <span>متصلة الآن</span>
+        </div>
+        <!-- زر مخصص لاستدعاء تحدي الـ PvP (Bounty Challenge) -->
+        <button class="pvp-btn" onclick="startPvPChallenge()">إنشاء تحدي PvP ⚔️</button>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+        <div class="message bot">
+            مرحباً! أنا مهتمة بالمشاريع التكنولوجية، وتحديات الـ PvP في SINU Syndicate تشعل حماسي! هل أنت مستعد لقفل رهان $SINU ودخول التحدي معي؟ 🎲🔥
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="اكتب رسالتك هنا...">
+        <button onclick="sendUserMessage()">إرسال</button>
+    </div>
+
+    <script>
+        // ========================================================
+        // 🛠️ إعدادات الـ Web3 وعقد لـ SINU Syndicate
+        // ========================================================
+        
+        // 1. ضع هنا عنوان عقدك الذكي الذي نشرته على شبكة Base
+        const contractAddress = "0x3E71427c4F4c3aE6DBA472Ccb17076E2148A1231"; 
+
+        // 2. الـ ABI الكامل الخاص بك
+        const contractABI = [{"inputs":[{"internalType":"address","name":"_sinuTokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"OwnableInvalidOwner","type":"error"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"OwnableUnauthorizedAccount","type":"error"},{"inputs":[],"name":"ReentrancyGuardReentrantCall","type":"error"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"SafeERC20FailedOperation","type":"error"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"challengeId","type":"uint256"},{"indexed":true,"internalType":"address","name":"winner","type":"address"},{"indexed":true,"internalType":"address","name":"loser","type":"address"},{"indexed":false,"internalType":"uint256","name":"prizeWon","type":"uint256"}],"name":"BattleResolved","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"challengeId","type":"uint256"},{"indexed":true,"internalType":"address","name":"creator","type":"address"},{"indexed":true,"internalType":"address","name":"target","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"BountyCreated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"uint256","name":"burnedAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"randomOutcome","type":"uint256"}],"name":"PveHitExecuted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"string","name":"itemType","type":"string"},{"indexed":false,"internalType":"uint256","name":"tokensBurned","type":"uint256"}],"name":"SurvivalUsed","type":"event"},{"inputs":[],"name":"BURN_ADDRESS","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_challengeId","type":"uint256"}],"name":"acceptAndFight","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_burnFee","type":"uint256"},{"internalType":"uint256","name":"_devFee","type":"uint256"}],"name":"adjustFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_hitBurn","type":"uint256"},{"internalType":"uint256","name":"_adrenaline","type":"uint256"},{"internalType":"uint256","name":"_smoke","type":"uint256"}],"name":"adjustPveCosts","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"adrenalineCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"burnFeePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_itemType","type":"uint256"}],"name":"buySurvivalItem","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"challengeCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"challenges","outputs":[{"internalType":"address","name":"creator","type":"address"},{"internalType":"address","name":"target","type":"address"},{"internalType":"uint256","name":"bountyAmount","type":"uint256"},{"internalType":"bool","name":"isAccepted","type":"bool"},{"internalType":"bool","name":"isResolved","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_target","type":"address"},{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"createBountyChallenge","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"devFeePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_token","type":"address"},{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"emergencyWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"executePveAssassination","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"pveAssassinationBurn","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"sinuToken","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"smokeBombCost","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+
+        // ========================================================
+        // ⚔️ دالة التفاعل واستدعاء تحدي الباونتي (PvP)
+        // ========================================================
+
+        async function startPvPChallenge() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    const signer = provider.getSigner();
+                    
+                    const gameContract = new ethers.Contract(contractAddress, contractABI, signer);
+                    
+                    appendSystemMessage("🔄 جاري إرسال المعاملة لإنشاء تحدي باونتي (createBountyChallenge) ضد سارة...");
+                    
+                    // عنوان حساب سارة كمثال لربطه بالدالة وقفل مبلغ 100 توكن (يمكنك تعديل القيم حسب رغبتك)
+                    const targetAddress = "0x94a3b894a3b894a3b894a3b894a3b894a3b894a3"; 
+                    const bountyAmount = ethers.utils.parseUnits("100", 18); // عدلها حسب أرقام الـ Decimals لعقدك
+                    
+                    // استدعاء دالة عقدك الذكي لإنشاء التحدي حقيقياً
+                    const tx = await gameContract.createBountyChallenge(targetAddress, bountyAmount);
+                    
+                    appendSystemMessage("⏳ جاري بث الرهان والتحدي على شبكة Base... يرجى تأكيد المعاملة.");
+                    await tx.wait();
+                    
+                    appendSystemMessage("🏆 تم إنشاء التحدي بنجاح! تم قفل الـ $SINU في العقد بانتظار بدء المعركة الحاسمة في محرك الـ C++!");
+
+                } catch (error) {
+                    console.error(error);
+                    appendSystemMessage("❌ فشلت المعاملة أو تم إلغاؤها من المحفظة.");
+                }
+            } else {
+                alert("يرجى استخدام متصفح يدعم محفظة الـ Web3!");
+            }
+        }
+
+        function appendSystemMessage(text) {
+            let chatBox = document.getElementById('chatBox');
+            let msg = document.createElement('div');
+            msg.className = 'message bot';
+            msg.style.background = '#1e293b';
+            msg.style.border = '1px solid #10b981';
+            msg.innerText = text;
+            chatBox.appendChild(msg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function sendUserMessage() {
+            let input = document.getElementById('messageInput');
+            let chatBox = document.getElementById('chatBox');
+            if (input.value.trim() !== "") {
+                let userMsg = document.createElement('div');
+                userMsg.className = 'message user';
+                userMsg.innerText = input.value;
+                chatBox.appendChild(userMsg);
+                input.value = "";
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
